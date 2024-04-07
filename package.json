@@ -12,10 +12,10 @@
 	},
 	"dependencies": {
 		"@cloudflare/ai": "^1.0.15",
-		"itty-router": "^4.2.2"
+		"itty-router": "^5.0.9"
 	},
 	"devDependencies": {
 		"vitest": "^0.31.0",
-		"wrangler": "^3.0.0"
+		"wrangler": "^3.48.0"
 	}
 }

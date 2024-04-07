@@ -1,5 +1,5 @@
-import { Router, createCors, error, json } from 'itty-router';
-
+import { Router, cors, json, error } from 'itty-router';
+const { preflight, corsify } = cors();
 // import the routes
 import { chatHandler } from './routes/chat';
 import { completionHandler } from './routes/completion';
@@ -7,50 +7,30 @@ import { embeddingsHandler } from './routes/embeddings';
 import { transcriptionHandler, translationHandler } from './routes/audio';
 import { getImageHandler, imageGenerationHandler } from './routes/image';
 
-const { preflight, corsify } = createCors();
+const withAuthenticatedUser = request => {
+	const token = request.headers.get('Authorization');
+	if (!token) return error(401, '错误的token');
+	console.log(token);
+};
 
 // Create a new router
 const router = Router();
 
-// CORS, see https://itty.dev/itty-router/cors
+router.options('*', preflight);
+
 router
-	// embed preflight upstream to handle all OPTIONS requests
-	.all('*', preflight);
-
-// chat completion
-router.post('/chat/completions', chatHandler);
-
-// legacy completions
-router.post('/completions', completionHandler);
-
-// embeddings
-router.post('/embeddings', embeddingsHandler);
-
-// audio transcriptions
-router.post('/audio/transcriptions', transcriptionHandler);
-
-// audio translations
-router.post('/audio/translations', translationHandler);
-
-router.post('/images/generations', imageGenerationHandler);
-
-router.get('/images/get/:name', getImageHandler);
-
+	.all('*', withAuthenticatedUser)
+	.post('/v1/chat/completions', chatHandler)
+	.post('/v1/completions', completionHandler)
+	.post('/v1/embeddings', embeddingsHandler)
+	.post('/v1/audio/transcriptions', transcriptionHandler)
+	.post('/v1/audio/translations', translationHandler)
+	.post('/v1/images/generations', imageGenerationHandler)
+	.get('/v1/images/get/:name', getImageHandler)
+	.then(r => corsify(r, request));
 // 404 for everything else
 router.all('*', () => new Response('404, not found!', { status: 404 }));
 
 export default {
-	fetch: (request, env, ctx) =>
-		router
-			.handle(request, env, ctx)
-
-			// catch any errors
-			.catch(e => {
-				console.error(e);
-				return error(e);
-			})
-
-			// add CORS headers to all requests,
-			// including errors
-			.then(corsify),
+	fetch: router.fetch
 };
