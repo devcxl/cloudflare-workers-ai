@@ -31,11 +31,12 @@ export const chatHandler = async (request, env) => {
 			let buffer = '';
 			const decoder = new TextDecoder();
 			const encoder = new TextEncoder();
-			const transformer = new TransformStream({
+			const { readable,writable} = new TransformStream({
 				transform(chunk, controller) {
 					buffer += decoder.decode(chunk);
 					// Process buffered data and try to find the complete message
 					while (true) {
+
 						const newlineIndex = buffer.indexOf('\n');
 						if (newlineIndex === -1) {
 							// If no line breaks are found, it means there is no complete message, wait for the next chunk
@@ -83,7 +84,8 @@ export const chatHandler = async (request, env) => {
 			// for now, nothing else does anything. Load the ai model.
 			const aiResp = await ai.run(model, { stream: json.stream, messages });
 			// Piping the readableStream through the transformStream
-			return json.stream ? new Response(aiResp.pipeThrough(transformer), {
+			aiResp.pipeTo(writable)
+			return json.stream ? new Response(readable, {
 				headers: {
 					'content-type': 'text/event-stream',
 					'Cache-Control': 'no-cache',
