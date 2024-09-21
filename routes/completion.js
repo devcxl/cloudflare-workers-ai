@@ -1,6 +1,6 @@
 export const completionHandler = async (request, env) => {
 	let model = '@cf/mistral/mistral-7b-instruct-v0.1';
-	let messages = [];
+	let messages = [{ role: 'system', content: ' complete the code based on the context provided below, only providing the completion content.' }];
 	let error = null;
 
 	// get the current time in epoch seconds
@@ -16,13 +16,14 @@ export const completionHandler = async (request, env) => {
 				const mapper = env.MODEL_MAPPER ?? {};
 				model = mapper[json.model] ? mapper[json.model] : json.model;
 			}
-			if (json?.messages) {
-				if (Array.isArray(json.messages)) {
-					if (json.messages.length === 0) {
-						return Response.json({ error: 'no messages provided' }, { status: 400 });
-					}
-					messages = json.messages;
+			if (json?.prompt) {
+				if (json.prompt.length === 0) {
+					return Response.json({ error: 'no prompt provided' }, { status: 400 });
 				}
+				messages.push({
+					role: 'user',
+					content: json.prompt,
+				});
 			}
 			if (!json?.stream) json.stream = false;
 
@@ -53,7 +54,7 @@ export const completionHandler = async (request, env) => {
 								console.log(content);
 								const doneflag = content.trim() == '[DONE]';
 								if (doneflag) {
-									controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+									controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 									return;
 								}
 
@@ -86,30 +87,32 @@ export const completionHandler = async (request, env) => {
 			// for now, nothing else does anything. Load the ai model.
 			const aiResp = await env.AI.run(model, { stream: json.stream, messages });
 			// Piping the readableStream through the transformStream
-			return json.stream ? new Response(aiResp.pipeThrough(transformer), {
-				headers: {
-					'content-type': 'text/event-stream',
-					'Cache-Control': 'no-cache',
-					'Connection': 'keep-alive',
-				},
-			}) : Response.json({
-				id: uuid,
-				model,
-				created,
-				object: 'text_completion',
-				choices: [
-					{
-						index: 0,
-						text: aiResp.response,
-						finish_reason: 'length',
-					},
-				],
-				usage: {
-					prompt_tokens: 0,
-					completion_tokens: 0,
-					total_tokens: 0,
-				},
-			});
+			return json.stream
+				? new Response(aiResp.pipeThrough(transformer), {
+						headers: {
+							'content-type': 'text/event-stream',
+							'Cache-Control': 'no-cache',
+							'Connection': 'keep-alive',
+						},
+				  })
+				: Response.json({
+						id: uuid,
+						model,
+						created,
+						object: 'text_completion',
+						choices: [
+							{
+								index: 0,
+								text: aiResp.response,
+								finish_reason: 'length',
+							},
+						],
+						usage: {
+							prompt_tokens: 0,
+							completion_tokens: 0,
+							total_tokens: 0,
+						},
+				  });
 		}
 	} catch (e) {
 		error = e;
