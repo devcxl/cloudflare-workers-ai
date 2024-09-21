@@ -1,6 +1,12 @@
 export const completionHandler = async (request, env) => {
 	let model = '@cf/mistral/mistral-7b-instruct-v0.1';
-	let messages = [{ role: 'system', content: ' complete the code based on the context provided below, only providing the completion content.' }];
+	let messages = [
+		{
+			role: 'system',
+			content:
+				'Complete based on user input, only providing the completion content.',
+		},
+	];
 	let error = null;
 
 	// get the current time in epoch seconds
@@ -51,12 +57,8 @@ export const completionHandler = async (request, env) => {
 						try {
 							if (line.startsWith('data: ')) {
 								const content = line.slice('data: '.length);
-								console.log(content);
+								// console.log(content);
 								const doneflag = content.trim() == '[DONE]';
-								if (doneflag) {
-									controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-									return;
-								}
 
 								const data = JSON.parse(content);
 								const newChunk =
@@ -70,12 +72,19 @@ export const completionHandler = async (request, env) => {
 											{
 												delta: { content: data.response },
 												index: 0,
-												finish_reason: null,
+												finish_reason: doneflag? "stop": null ,
 											},
 										],
 									}) +
 									'\n\n';
-								controller.enqueue(encoder.encode(newChunk));
+
+								if (doneflag) {
+									controller.enqueue(encoder.encode(newChunk));
+									controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+									return;
+								}else{
+									controller.enqueue(encoder.encode(newChunk));
+								}
 							}
 						} catch (err) {
 							console.error('Error parsing line:', err);
