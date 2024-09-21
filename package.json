@@ -5,9 +5,7 @@
 	"scripts": {
 		"deploy": "wrangler deploy index.js",
 		"dev": "wrangler dev index.js --remote",
-		"init-dev": "wrangler r2 bucket create ai-images",
-		"init-prod": "wrangler r2 bucket create openai-cf-images",
-		"start-stackblitz": "WRANGLER_SEND_METRICS=false wrangler dev index.js --remote",
+		"init": "wrangler r2 bucket create cloudflare-worker-ai-images",
 		"test": "vitest"
 	},
 	"dependencies": {
