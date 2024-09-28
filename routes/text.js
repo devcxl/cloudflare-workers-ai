@@ -6,7 +6,11 @@ export const textTranscriptionHandler = async (request, env) => {
 		if (request.headers.get('Content-Type') === 'application/json') {
 			let json = await request.json();
 			if (json?.text && json?.source && json?.target) {
-				const resp = await env.AI.run(model, input);
+				const resp = await env.AI.run(model, {
+					text: json.text,
+					source_lang: json.source,
+					target_lang: json.target,
+				});
 				return Response.json({
 					translated: resp.translated_text,
 				});
