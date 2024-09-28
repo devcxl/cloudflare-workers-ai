@@ -5,6 +5,7 @@ import { chatHandler } from './routes/chat';
 import { completionHandler } from './routes/completion';
 import { embeddingsHandler } from './routes/embeddings';
 import { transcriptionHandler, translationHandler } from './routes/audio';
+import { textTranscriptionHandler } from './routes/text';
 import { getImageHandler, imageGenerationHandler } from './routes/image';
 import { modelsHandler } from './routes/models';
 
@@ -44,6 +45,7 @@ router
 	.post('/embeddings', embeddingsHandler)
 	.post('/audio/transcriptions', transcriptionHandler)
 	.post('/audio/translations', translationHandler)
+	.post('/text/translations', textTranscriptionHandler)
 	.post('/images/generations', imageGenerationHandler)
 	.get('/images/get/:name', getImageHandler)
 	.get('/models', modelsHandler);
